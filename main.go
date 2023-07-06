@@ -67,7 +67,7 @@ func (conf *RecordConfig) OnEvent(event any) {
 	case SEclose:
 		streamPath := v.Target.Path
 		db := m7sdb.MysqlDB()
-		db.Model(&MediaRecord{}).Where("stream_path = ?", streamPath).Where("type = ?", 1).Update("type", 2)
+		db.Model(&MediaRecord{}).Where("stream_path = ?", streamPath).Where("status = ?", 1).Update("status", 2)
 		delete(conf.Flv.recording, streamPath)
 		delete(conf.Mp4.recording, streamPath)
 		delete(conf.Hls.recording, streamPath)
@@ -82,7 +82,7 @@ func (conf *RecordConfig) OnEvent(event any) {
 		}else{
 			var mediaRecords []*MediaRecord
 			db := m7sdb.MysqlDB()
-			result := db.Where("stream_path = ?", streamPath).Where("type = ?", 2).Find(&mediaRecords)
+			result := db.Where("stream_path = ?", streamPath).Where("status = ?", 2).Where("type = ?", 1).Find(&mediaRecords)
 			if(result.RowsAffected>0){
 				i := 1
 				for _, item := range mediaRecords {
@@ -94,13 +94,14 @@ func (conf *RecordConfig) OnEvent(event any) {
 					err := flvRecoder.Start(item.StreamPath)
 					if(err == nil){
 						i++
-						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("type", 3)
+						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("status", 3)
 						mr := &MediaRecord{
 							CreateTime: time.Now(),
-							Type: 1,
+							Status: 1,
 							StreamPath: streamPath,
 							FilePath: filePath,
 							RecordId: flvRecoder.ID,
+							Type: 1,
 						}
 						db.Create(&mr)
 					}
@@ -115,7 +116,7 @@ func (conf *RecordConfig) OnEvent(event any) {
 		}else{
 			var mediaRecords []*MediaRecord
 			db := m7sdb.MysqlDB()
-			result := db.Where("stream_path = ?", streamPath).Where("type = ?", 2).Find(&mediaRecords)
+			result := db.Where("stream_path = ?", streamPath).Where("status = ?", 2).Where("type = ?", 1).Find(&mediaRecords)
 			if(result.RowsAffected>0){
 				i := 1
 				for _, item := range mediaRecords {
@@ -128,12 +129,13 @@ func (conf *RecordConfig) OnEvent(event any) {
 					err := recoder.Start(streamPath)
 					if(err == nil){
 						i++
-						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("type", 3)
+						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("status", 3)
 						mr := &MediaRecord{
 							CreateTime: time.Now(),
-							Type: 1,
+							Status: 1,
 							StreamPath: streamPath,
 							FilePath: filePath,
+							Type: 2,
 							RecordId: recoder.ID,
 						}
 						db.Create(&mr)

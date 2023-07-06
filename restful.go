@@ -15,6 +15,7 @@ type MediaRecord struct {
 	StreamPath string
 	RecordId string
 	FilePath string
+	Status int
 	Type int
 	CreateTime time.Time
 }
@@ -57,6 +58,7 @@ func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	t := query.Get("type")
+	recordType := 2
 	var id string
 	var err error
 	switch t {
@@ -69,15 +71,18 @@ func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 		flvRecoder.filePath = filePath
 		err = flvRecoder.Start(streamPath)
 		id = flvRecoder.ID
+		recordType = 1
 	case "mp4":
 		recorder := NewMP4Recorder()
 		recorder.filePath = filePath
 		err = recorder.Start(streamPath)
 		id = recorder.ID
+		recordType = 2
 	case "hls":
 		var recorder HLSRecorder
 		err = recorder.Start(streamPath)
 		id = recorder.ID
+		recordType = 3
 	case "raw":
 		var recorder RawRecorder
 		recorder.append = query.Get("append") != ""
@@ -106,14 +111,15 @@ func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 	if(count==0){
 		mr := &MediaRecord{
 			CreateTime: time.Now(),
-			Type: 1,
+			Status: 1,
 			StreamPath: streamPath,
 			FilePath: filePath,
+			Type: recordType,
 			RecordId: id,
 		}
 		db.Create(&mr)
 	}else{
-		db.Model(&MediaRecord{}).Where("record_id = ?", id).Update("type", 1)
+		db.Model(&MediaRecord{}).Where("record_id = ?", id).Update("status", 1)
 	}
 	
 	w.Write([]byte(id))
@@ -131,11 +137,11 @@ func (conf *RecordConfig) API_list_recording(w http.ResponseWriter, r *http.Requ
 
 func (conf *RecordConfig) API_stop(w http.ResponseWriter, r *http.Request) {
 	recordId := r.URL.Query().Get("recordId")
-	recordType := r.URL.Query().Get("type")
+	recordStatus := r.URL.Query().Get("status")
 	if recorder, ok := conf.recordings.Load(recordId); ok {
 		recorder.(ISubscriber).Stop()
 		db := m7sdb.MysqlDB()
-		db.Model(&MediaRecord{}).Where("record_id = ?", recordId).Update("type", recordType)
+		db.Model(&MediaRecord{}).Where("record_id = ?", recordId).Update("status", recordStatus)
 		w.Write([]byte("ok"))
 		return
 	}
