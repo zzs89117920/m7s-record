@@ -36,7 +36,12 @@ func (r *Recorder) OnEvent(event any) {
 	case ISubscriber:
 		filename := strconv.FormatInt(time.Now().Unix(), 10) + r.Ext
 		if r.Fragment == 0 {
-			filename = r.Stream.Path + r.Ext
+			if(r.filePath == ""){
+				filename = r.Stream.Path + r.Ext
+			}else{
+				filename = filepath.Join(r.Stream.Path, r.filePath + r.Ext)
+			}
+			
 		} else {
 			filename = filepath.Join(r.Stream.Path, filename)
 		}

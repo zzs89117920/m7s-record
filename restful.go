@@ -97,7 +97,7 @@ func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-		db := 	m7sdb.MysqlDB()
+	db := 	m7sdb.MysqlDB()
 	
 	var count int64
 	db.Model(&MediaRecord{}).Where("record_id = ?", id).Count(&count)
@@ -133,7 +133,7 @@ func (conf *RecordConfig) API_stop(w http.ResponseWriter, r *http.Request) {
 	recordType := r.URL.Query().Get("type")
 	if recorder, ok := conf.recordings.Load(recordId); ok {
 		recorder.(ISubscriber).Stop()
-		db := 	m7sdb.MysqlDB()
+		db := m7sdb.MysqlDB()
 		db.Model(&MediaRecord{}).Where("record_id = ?", recordId).Update("type", recordType)
 		w.Write([]byte("ok"))
 		return
