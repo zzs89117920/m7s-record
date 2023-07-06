@@ -111,7 +111,7 @@ func (conf *RecordConfig) OnEvent(event any) {
 		if conf.Mp4.NeedRecord(streamPath) {
 			recoder := NewMP4Recorder()
 			conf.Mp4.recording[streamPath] = recoder
-			go recoder.Start(streamPath, "")
+			go recoder.Start(streamPath)
 		}else{
 			var mediaRecords []*MediaRecord
 			db := m7sdb.MysqlDB()
@@ -119,13 +119,13 @@ func (conf *RecordConfig) OnEvent(event any) {
 			if(result.RowsAffected>0){
 				i := 1
 				for _, item := range mediaRecords {
-
+					
+					filePath := item.FilePath+"_"+ strconv.Itoa(i)
 					recoder := NewMP4Recorder()
+					recoder.filePath = filePath
 					conf.Mp4.recording[streamPath] = recoder
 
-					filePath := item.FilePath+"_"+ strconv.Itoa(i)
-				
-					err := recoder.Start(streamPath, filePath)
+					err := recoder.Start(streamPath)
 					if(err == nil){
 						i++
 						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("type", 3)
