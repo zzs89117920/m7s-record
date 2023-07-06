@@ -71,7 +71,7 @@ func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 		id = flvRecoder.ID
 	case "mp4":
 		recorder := NewMP4Recorder()
-		err = recorder.Start(streamPath)
+		err = recorder.Start(streamPath, filePath)
 		id = recorder.ID
 	case "hls":
 		var recorder HLSRecorder

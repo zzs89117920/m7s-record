@@ -111,7 +111,36 @@ func (conf *RecordConfig) OnEvent(event any) {
 		if conf.Mp4.NeedRecord(streamPath) {
 			recoder := NewMP4Recorder()
 			conf.Mp4.recording[streamPath] = recoder
-			go recoder.Start(streamPath)
+			go recoder.Start(streamPath, "")
+		}else{
+			var mediaRecords []*MediaRecord
+			db := m7sdb.MysqlDB()
+			result := db.Where("stream_path = ?", streamPath).Where("type = ?", 2).Find(&mediaRecords)
+			if(result.RowsAffected>0){
+				i := 1
+				for _, item := range mediaRecords {
+
+					recoder := NewMP4Recorder()
+					conf.Mp4.recording[streamPath] = recoder
+
+					filePath := item.FilePath+"_"+ strconv.Itoa(i)
+				
+					err := recoder.Start(streamPath, filePath)
+					if(err == nil){
+						i++
+						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("type", 3)
+						mr := &MediaRecord{
+							CreateTime: time.Now(),
+							Type: 1,
+							StreamPath: streamPath,
+							FilePath: filePath,
+							RecordId: recoder.ID,
+						}
+						db.Create(&mr)
+					}
+				}
+				
+			}
 		}
 		if conf.Hls.NeedRecord(streamPath) {
 			var hls HLSRecorder
