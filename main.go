@@ -17,6 +17,7 @@ import (
 
 type RecordConfig struct {
 	DefaultYaml
+	config.HTTP
 	config.Subscribe
 	Flv        Record
 	Mp4        Record
