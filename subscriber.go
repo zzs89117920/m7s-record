@@ -45,6 +45,7 @@ func (r *Recorder) OnEvent(event any) {
 			db.Model(&MediaRecord{}).Where("stream_path = ?", r.Stream.Path).Count(&count)
 			if(count>0){
 				filename += "_" + strconv.FormatInt(count, 10)
+				timename = filename
 			}
 			filename = filepath.Join(r.Stream.Path, filename) + r.Ext
 		}
