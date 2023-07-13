@@ -24,7 +24,7 @@ type FLVRecorder struct {
 
 func (r *FLVRecorder) Start(streamPath string) (err error) {
 	r.Record = &RecordPluginConfig.Flv
-	r.ID = streamPath + "/"+ r.Recorder.filePath + "/flv"
+	r.ID = streamPath + "/flv"
 	if _, ok := RecordPluginConfig.recordings.Load(r.ID); ok {
 		return ErrRecordExist
 	}
@@ -131,7 +131,7 @@ func (r *FLVRecorder) OnEvent(event any) {
 	case ISubscriber:
 		filename := strconv.FormatInt(time.Now().Unix(), 10) + r.Ext
 		if r.Fragment == 0 {
-			filename = filepath.Join(r.Stream.Path, r.filePath + r.Ext)
+			filename = r.Stream.Path + r.Ext
 		} else {
 			filename = filepath.Join(r.Stream.Path, filename)
 		}

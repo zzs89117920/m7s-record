@@ -5,19 +5,28 @@ import (
 	"net/http"
 	"time"
 
-	m7sdb "github.com/zzs89117920/m7s-db"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/util"
 )
-
 type MediaRecord struct {
 	Id int `gorm:"primaryKey"`
 	StreamPath string
 	RecordId string
-	FilePath string
+	FileName string
 	Status int
 	Type int
 	CreateTime time.Time
+}
+type ChannelInfo struct {
+	DeviceID     string `gorm:"primaryKey"`// 通道ID
+	ParentID     string `gorm:"primaryKey"`
+	IsRecord     bool
+}
+
+type PullDevice struct {
+	Id int `gorm:"primaryKey"`
+	IsRecord bool
+	StreamPath string
 }
 
 func (conf *RecordConfig) API_list(w http.ResponseWriter, r *http.Request) {
@@ -52,13 +61,11 @@ func (conf *RecordConfig) API_list(w http.ResponseWriter, r *http.Request) {
 func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	streamPath := query.Get("streamPath")
-	filePath := query.Get("filePath")
 	if streamPath == "" {
 		http.Error(w, "no streamPath", http.StatusBadRequest)
 		return
 	}
 	t := query.Get("type")
-	recordType := 2
 	var id string
 	var err error
 	switch t {
@@ -68,21 +75,16 @@ func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 	case "flv":
 		var flvRecoder FLVRecorder
 		flvRecoder.append = query.Get("append") != ""
-		flvRecoder.filePath = filePath
 		err = flvRecoder.Start(streamPath)
 		id = flvRecoder.ID
-		recordType = 1
 	case "mp4":
 		recorder := NewMP4Recorder()
-		recorder.filePath = filePath
 		err = recorder.Start(streamPath)
 		id = recorder.ID
-		recordType = 2
 	case "hls":
 		var recorder HLSRecorder
 		err = recorder.Start(streamPath)
 		id = recorder.ID
-		recordType = 3
 	case "raw":
 		var recorder RawRecorder
 		recorder.append = query.Get("append") != ""
@@ -102,26 +104,6 @@ func (conf *RecordConfig) API_start(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	db := 	m7sdb.MysqlDB()
-	
-	var count int64
-	db.Model(&MediaRecord{}).Where("record_id = ?", id).Count(&count)
-
-	if(count==0){
-		mr := &MediaRecord{
-			CreateTime: time.Now(),
-			Status: 1,
-			StreamPath: streamPath,
-			FilePath: filePath,
-			Type: recordType,
-			RecordId: id,
-		}
-		db.Create(&mr)
-	}else{
-		db.Model(&MediaRecord{}).Where("record_id = ?", id).Update("status", 1)
-	}
-	
 	w.Write([]byte(id))
 }
 
@@ -136,12 +118,8 @@ func (conf *RecordConfig) API_list_recording(w http.ResponseWriter, r *http.Requ
 }
 
 func (conf *RecordConfig) API_stop(w http.ResponseWriter, r *http.Request) {
-	recordId := r.URL.Query().Get("recordId")
-	recordStatus := r.URL.Query().Get("status")
-	if recorder, ok := conf.recordings.Load(recordId); ok {
+	if recorder, ok := conf.recordings.Load(r.URL.Query().Get("id")); ok {
 		recorder.(ISubscriber).Stop()
-		db := m7sdb.MysqlDB()
-		db.Model(&MediaRecord{}).Where("record_id = ?", recordId).Update("status", recordStatus)
 		w.Write([]byte("ok"))
 		return
 	}

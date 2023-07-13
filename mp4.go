@@ -58,11 +58,7 @@ func NewMP4Recorder() *MP4Recorder {
 
 func (r *MP4Recorder) Start(streamPath string) (err error) {
 	r.Record = &RecordPluginConfig.Mp4
-	if(r.filePath==""){
-		r.ID = streamPath + "/mp4"
-	}else{
-		r.ID = streamPath + "/" + r.filePath + "/mp4"
-	}
+	r.ID = streamPath + "/mp4"
 	
 	if _, ok := RecordPluginConfig.recordings.Load(r.ID); ok {
 		return ErrRecordExist

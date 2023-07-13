@@ -4,9 +4,7 @@ import (
 	_ "embed"
 	"errors"
 	"io"
-	"strconv"
 	"sync"
-	"time"
 
 	m7sdb "github.com/zzs89117920/m7s-db"
 	. "m7s.live/engine/v4"
@@ -67,8 +65,6 @@ func (conf *RecordConfig) OnEvent(event any) {
 		conf.RawAudio.Init()
 	case SEclose:
 		streamPath := v.Target.Path
-		db := m7sdb.MysqlDB()
-		db.Model(&MediaRecord{}).Where("stream_path = ?", streamPath).Where("status = ?", 1).Update("status", 2)
 		delete(conf.Flv.recording, streamPath)
 		delete(conf.Mp4.recording, streamPath)
 		delete(conf.Hls.recording, streamPath)
@@ -80,69 +76,30 @@ func (conf *RecordConfig) OnEvent(event any) {
 			var flv FLVRecorder
 			conf.Flv.recording[streamPath] = &flv
 			go flv.Start(streamPath)
-		}else{
-			var mediaRecords []*MediaRecord
-			db := m7sdb.MysqlDB()
-			result := db.Where("stream_path = ?", streamPath).Where("status = ?", 2).Where("type = ?", 1).Find(&mediaRecords)
-			if(result.RowsAffected>0){
-				i := 1
-				for _, item := range mediaRecords {
-					var flvRecoder FLVRecorder
-					filePath := item.FilePath+"_"+ strconv.Itoa(i)
-					if(flvRecoder.filePath==""){
-						flvRecoder.filePath =  filePath
-					}
-					err := flvRecoder.Start(item.StreamPath)
-					if(err == nil){
-						i++
-						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("status", 3)
-						mr := &MediaRecord{
-							CreateTime: time.Now(),
-							Status: 1,
-							StreamPath: streamPath,
-							FilePath: filePath,
-							RecordId: flvRecoder.ID,
-							Type: 1,
-						}
-						db.Create(&mr)
-					}
-				}
-				
-			}
 		}
 		if conf.Mp4.NeedRecord(streamPath) {
 			recoder := NewMP4Recorder()
 			conf.Mp4.recording[streamPath] = recoder
 			go recoder.Start(streamPath)
 		}else{
-			var mediaRecords []*MediaRecord
 			db := m7sdb.MysqlDB()
-			result := db.Where("stream_path = ?", streamPath).Where("status = ?", 2).Where("type = ?", 1).Find(&mediaRecords)
+			var channelInfos []*ChannelInfo
+			result := db.Where("is_record = ?", true).Find(&channelInfos)
 			if(result.RowsAffected>0){
-				i := 1
-				for _, item := range mediaRecords {
-					
-					filePath := item.FilePath+"_"+ strconv.Itoa(i)
+				for _, item := range channelInfos {
 					recoder := NewMP4Recorder()
-					recoder.filePath = filePath
 					conf.Mp4.recording[streamPath] = recoder
-
-					err := recoder.Start(streamPath)
-					if(err == nil){
-						i++
-						db.Model(&MediaRecord{}).Where("record_id = ?", item.RecordId).Update("status", 3)
-						mr := &MediaRecord{
-							CreateTime: time.Now(),
-							Status: 1,
-							StreamPath: streamPath,
-							FilePath: filePath,
-							Type: 2,
-							RecordId: recoder.ID,
-						}
-						db.Create(&mr)
-					}
+					recoder.Start(item.ParentID+item.DeviceID)
 				}
-				
+			}
+			var pullDevices []*PullDevice
+			result1 := db.Where("is_record = ?", true).Find(&pullDevices)
+			if(result1.RowsAffected>0){
+				for _, item := range pullDevices {
+					recoder := NewMP4Recorder()
+					conf.Mp4.recording[streamPath] = recoder
+					recoder.Start(item.StreamPath)
+				}
 			}
 		}
 		if conf.Hls.NeedRecord(streamPath) {
