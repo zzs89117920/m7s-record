@@ -42,7 +42,7 @@ func (r *Recorder) OnEvent(event any) {
 		} else {
 			var count int64
 			db := 	m7sdb.MysqlDB()
-			db.Model(&MediaRecord{}).Where("stream_path = ?", r.Stream.Path).Count(&count)
+			db.Model(&MediaRecord{}).Where("file_name = ?", timename).Count(&count)
 			if(count>0){
 				filename += "_" + strconv.FormatInt(count, 10)
 				timename = filename

@@ -7,6 +7,7 @@ import (
 
 	"github.com/edgeware/mp4ff/aac"
 	"github.com/edgeware/mp4ff/mp4"
+	m7sdb "github.com/zzs89117920/m7s-db"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -86,8 +87,26 @@ func (r *MP4Recorder) OnEvent(event any) {
 	if r.newFile {
 		r.newFile = false
 		r.Close()
-		if file, err := r.CreateFileFn(filepath.Join(r.Stream.Path, strconv.FormatInt(time.Now().Unix(), 10)+r.Ext), false); err == nil {
+		timename := time.Now().Format("2006010215") 
+		filename := timename 
+		var count int64
+		db := 	m7sdb.MysqlDB()
+		db.Model(&MediaRecord{}).Where("file_name = ?", timename).Count(&count)
+		if(count>0){
+			filename += "_" + strconv.FormatInt(count, 10)
+			timename = filename
+		}
+		if file, err := r.CreateFileFn(filepath.Join(r.Stream.Path, filename + r.Ext), false); err == nil {
 			r.SetIO(file)
+			mr := &MediaRecord{
+				CreateTime: time.Now(),
+				Status: 1,
+				StreamPath: r.Stream.Path,
+				FileName: timename,
+				Type: 2,
+				RecordId: r.ID,
+			}
+			db.Create(&mr)
 			r.InitSegment = mp4.CreateEmptyInit()
 			r.Moov.Mvhd.NextTrackID = 1
 			if r.VideoReader != nil {
