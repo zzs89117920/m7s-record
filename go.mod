@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/edgeware/mp4ff v0.28.0
 	go.uber.org/zap v1.23.0
-	m7s.live/engine/v4 v4.13.5
+	m7s.live/engine/v4 v4.13.7
 	m7s.live/plugin/hls/v4 v4.3.1
 )
 
