@@ -16,7 +16,7 @@ type Recorder struct {
 	*Record `json:"-" yaml:"-"`
 	newFile bool // 创建了新的文件
 	append  bool // 是否追加模式
-	
+	fileName string //文件名
 }
 
 func (r *Recorder) start() {
@@ -35,28 +35,25 @@ func (r *Recorder) cut(absTime uint32) {
 func (r *Recorder) OnEvent(event any) {
 	switch v := event.(type) {
 	case ISubscriber:
-		timename := time.Now().Format("2006010215") 
-		filename := timename 
-		if r.Fragment == 0 {
-			filename = r.Stream.Path + r.Ext
-		} else {
-			var count int64
-			db := 	m7sdb.MysqlDB()
-			db.Model(&MediaRecord{}).Where("file_name = ?", timename).Count(&count)
-			if(count>0){
-				filename += "_" + strconv.FormatInt(count, 10)
-				timename = filename
-			}
-			filename = filepath.Join(r.Stream.Path, filename) + r.Ext
+		filename := time.Now().Format("2006010215")  
+	
+		var count int64
+		db := 	m7sdb.MysqlDB()
+		db.Model(&MediaRecord{}).Where("file_name = ?", filename).Count(&count)
+		if(count>0){
+			filename += "_" + strconv.FormatInt(count, 10)
 		}
-		if file, err := r.CreateFileFn(filename, r.append); err == nil {
+		fileFullname := filepath.Join(r.Stream.Path, filename) + r.Ext
+		
+		if file, err := r.CreateFileFn(fileFullname, r.append); err == nil {
+			r.fileName = fileFullname
 			r.SetIO(file)
 			db := 	m7sdb.MysqlDB()
 			mr := &MediaRecord{
 				CreateTime: time.Now(),
 				Status: 1,
 				StreamPath: r.Stream.Path,
-				FileName: timename,
+				FileName: filename,
 				Type: 2,
 				RecordId: r.ID,
 			}

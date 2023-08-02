@@ -87,22 +87,22 @@ func (r *MP4Recorder) OnEvent(event any) {
 	if r.newFile {
 		r.newFile = false
 		r.Close()
-		timename := time.Now().Format("2006010215") 
-		filename := timename 
+		filename := time.Now().Format("2006010215")  
 		var count int64
 		db := 	m7sdb.MysqlDB()
-		db.Model(&MediaRecord{}).Where("file_name = ?", timename).Count(&count)
+		db.Model(&MediaRecord{}).Where("file_name = ?", filename).Count(&count)
 		if(count>0){
 			filename += "_" + strconv.FormatInt(count, 10)
-			timename = filename
 		}
-		if file, err := r.CreateFileFn(filepath.Join(r.Stream.Path, filename + r.Ext), false); err == nil {
+		fileFullname := filename + r.Ext
+		if file, err := r.CreateFileFn(filepath.Join(r.Stream.Path, fileFullname), false); err == nil {
+			r.fileName = fileFullname
 			r.SetIO(file)
 			mr := &MediaRecord{
 				CreateTime: time.Now(),
 				Status: 1,
 				StreamPath: r.Stream.Path,
-				FileName: timename,
+				FileName: filename,
 				Type: 2,
 				RecordId: r.ID,
 			}

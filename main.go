@@ -23,8 +23,15 @@ type RecordConfig struct {
 	Raw        Record
 	RawAudio   Record
 	recordings sync.Map
+	Store StoreConfig
 }
-
+type StoreConfig struct {
+	Type string
+	Endpoint string
+	AccessKey string
+	SecretKey string
+	Bucket string
+}
 //go:embed default.yaml
 var defaultYaml DefaultYaml
 var ErrRecordExist = errors.New("recorder exist")
@@ -50,6 +57,9 @@ var RecordPluginConfig = &RecordConfig{
 	RawAudio: Record{
 		Path: "record/raw",
 		Ext:  ".", // 默认aac扩展名为.aac,pcma扩展名为.pcma,pcmu扩展名为.pcmu
+	},
+	Store: StoreConfig{
+		Type: "File",
 	},
 }
 

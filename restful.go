@@ -3,8 +3,11 @@ package record
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/minio/minio-go"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/util"
 )
@@ -120,6 +123,24 @@ func (conf *RecordConfig) API_list_recording(w http.ResponseWriter, r *http.Requ
 func (conf *RecordConfig) API_stop(w http.ResponseWriter, r *http.Request) {
 	if recorder, ok := conf.recordings.Load(r.URL.Query().Get("id")); ok {
 		recorder.(ISubscriber).Stop()
+		store := RecordPluginConfig.Store
+		if(store.Type == "Minio"){
+			minioClient, err := minio.New(store.Endpoint, store.AccessKey, store.SecretKey, false)
+			if err == nil {
+				r := recorder.(*Recorder)
+				dir, _ := os.Getwd()
+
+				bktExist, _ := minioClient.BucketExists(store.Bucket)
+				if(!bktExist){
+					minioClient.MakeBucket(store.Bucket, "")
+				}
+				filePath := filepath.Join(dir, RecordPluginConfig.Mp4.Path, r.fileName)
+				_ , err1 := minioClient.FPutObject(store.Bucket, r.fileName, filePath, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+				if(err1 == nil){
+					os.Remove(filePath)
+				}
+    	}
+		}
 		w.Write([]byte("ok"))
 		return
 	}
