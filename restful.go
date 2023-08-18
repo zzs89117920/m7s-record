@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/minio/minio-go"
+	m7sdb "github.com/zzs89117920/m7s-db"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/util"
 )
@@ -138,6 +139,8 @@ func (conf *RecordConfig) API_stop(w http.ResponseWriter, r *http.Request) {
 				_ , err1 := minioClient.FPutObject(store.Bucket, r.fileName, filePath, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 				if(err1 == nil){
 					os.Remove(filePath)
+					db := 	m7sdb.MysqlDB()
+					db.Model(&MediaRecord{}).Where("file_name = ? and stream_path= ?", r.fileName ,  r.Stream.Path).Update("status", 3)
 				}
     	}
 		}
