@@ -142,7 +142,10 @@ func (conf *RecordConfig) API_stop(w http.ResponseWriter, r *http.Request) {
 				if(err1 == nil){
 					os.Remove(filePath)
 					var str_arr = strings.Split(r.fileName, ".")
-					fileName := str_arr[0]
+					fileFullName := str_arr[0]
+					
+					var str_arr1 = strings.Split(fileFullName, "/")
+					fileName := str_arr1[len(str_arr1) - 1]
 					db := 	m7sdb.MysqlDB()
 					fmt.Println("fileName=>"+fileName)
 					db.Model(&MediaRecord{}).Where("file_name = ? and stream_path= ?", fileName ,  r.Stream.Path).Update("status", 3)
