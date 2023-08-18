@@ -2,9 +2,11 @@ package record
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/minio/minio-go"
@@ -136,11 +138,14 @@ func (conf *RecordConfig) API_stop(w http.ResponseWriter, r *http.Request) {
 					minioClient.MakeBucket(store.Bucket, "")
 				}
 				filePath := filepath.Join(dir, RecordPluginConfig.Mp4.Path, r.fileName)
-				_ , err1 := minioClient.FPutObject(store.Bucket, r.fileName, filePath, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+				_ , err1 := minioClient.FPutObject(store.Bucket, r.fileName, filePath, minio.PutObjectOptions{ContentType: "video/mp4"})
 				if(err1 == nil){
 					os.Remove(filePath)
+					var str_arr = strings.Split(r.fileName, ".")
+					fileName := str_arr[0]
 					db := 	m7sdb.MysqlDB()
-					db.Model(&MediaRecord{}).Where("file_name = ? and stream_path= ?", r.fileName ,  r.Stream.Path).Update("status", 3)
+					fmt.Println("fileName=>"+fileName)
+					db.Model(&MediaRecord{}).Where("file_name = ? and stream_path= ?", fileName ,  r.Stream.Path).Update("status", 3)
 				}
     	}
 		}
